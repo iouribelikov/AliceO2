@@ -11,14 +11,13 @@
 /// \file TrivialVertexer.cxx
 /// \brief Implementation of the ITS trivial vertex finder
 
-#include <limits>
+#include <map>
 
-#include "TFile.h"
-#include "TTree.h"
-
-#include "FairMCEventHeader.h"
 #include "FairLogger.h"
 
+#include "ITSBase/GeometryTGeo.h"
+#include "MathUtils/Cartesian3D.h"
+#include "ITSReconstruction/LinearVertex.h"
 #include "ITSReconstruction/TrivialVertexer.h"
 #include "DataFormatsITSMFT/Cluster.h"
 #include "SimulationDataFormat/MCCompLabel.h"
@@ -27,42 +26,9 @@
 using namespace o2::ITSMFT;
 using namespace o2::ITS;
 
-using Point3Df = Point3D<float>;
-
 TrivialVertexer::TrivialVertexer() = default;
 
-TrivialVertexer::~TrivialVertexer()
-{
-  if (mHeader)
-    delete mHeader;
-  if (mTree)
-    delete mTree;
-  if (mFile)
-    delete mFile;
-}
-
-Bool_t TrivialVertexer::openInputFile(const Char_t* fname)
-{
-  mFile = TFile::Open(fname, "old");
-  if (!mFile) {
-    LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot open the input file !" << FairLogger::endl;
-    return kFALSE;
-  }
-  mTree = (TTree*)mFile->Get("o2sim");
-  if (!mTree) {
-    LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot get the input tree !" << FairLogger::endl;
-    return kFALSE;
-  }
-  Int_t rc = mTree->SetBranchAddress("MCEventHeader.", &mHeader);
-  if (rc != 0) {
-    LOG(ERROR) << "TrivialVertexer::openInputFile() : "
-               << "Cannot get the input branch ! rc=" << rc << FairLogger::endl;
-    return kFALSE;
-  }
-  return kTRUE;
-}
+TrivialVertexer::~TrivialVertexer() = default;
 
 void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<std::array<Double_t, 3>>& vertices)
 {
@@ -73,33 +39,51 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
     return;
   }
 
-  if (mTree == nullptr) {
-    LOG(INFO) << "TrivialVertexer::process() : "
-              << "No MC information available ! Running with a default MC vertex..." << FairLogger::endl;
-    vertices.emplace_back(std::array<Double_t, 3>{ 0., 0., 0. });
-    return;
-  }
+  using layer = std::vector<Int_t>;
+  std::map<Int_t, std::pair<layer, layer>> events;
+  
+  auto gman = o2::ITS::GeometryTGeo::Instance();
 
-  Int_t lastEventID = 0;
-  Int_t firstEventID = std::numeric_limits<Int_t>::max();
-
-  // Find the first and last MC event within this TF
+  // Separate clusters coming from different MC events
   for (Int_t i = 0; i < clusters.size(); ++i) {
     auto mclab = (mClsLabels->getLabels(i))[0];
     if (mclab.getTrackID() == -1)
       continue; // noise
     auto id = mclab.getEventID();
-    if (id < firstEventID)
-      firstEventID = id;
-    if (id > lastEventID)
-      lastEventID = id;
+    auto &event = events[id];
+    const auto &c = clusters[i];
+    auto r = c.getX();
+    if (TMath::Abs(r - 2.2) < 0.5) { event.first.push_back(i); continue; }
+    if (TMath::Abs(r - 3.0) < 0.5) event.second.push_back(i);
   }
 
-  for (Int_t mcEv = firstEventID; mcEv <= lastEventID; ++mcEv) {
-    mTree->GetEvent(mcEv);
-    Double_t vx = mHeader->GetX();
-    Double_t vy = mHeader->GetY();
-    Double_t vz = mHeader->GetZ();
+  for (const auto &event : events) {
+    auto mcEv = event.first;
+    LinearVertex vtx;
+    const auto &layer0 = event.second.first;
+    for (auto i0 : layer0) {
+        const auto &c0 = clusters[i0];
+        auto mclab0 = (mClsLabels->getLabels(i0))[0];
+        auto lab0 = mclab0.getTrackID();
+        const auto &layer1 = event.second.second;
+        for (auto i1 : layer1) {
+           const auto &c1 = clusters[i1];
+           auto mclab1 = (mClsLabels->getLabels(i1))[0];
+           auto lab1 = mclab1.getTrackID();
+	   if (lab0 != lab1) continue;
+	   const auto p0 = c0.getXYZGloRot(*gman); 
+	   const auto p1 = c1.getXYZGloRot(*gman); 
+           std::array<Double_t, 3> p{ p0.X(), p0.Y(), p0.Z() };
+           std::array<Double_t, 3> v{ p1.X() - p0.X(), p1.Y() - p0.Y(), p1.Z() - p0.Z() };
+           auto sy2 = (c1.getSigmaY2() + c0.getSigmaY2());
+           auto sz2 = (c1.getSigmaZ2() + c0.getSigmaZ2());
+	   vtx.update(p, v, sy2, sz2);
+	}
+    }
+    auto vx = vtx.getX();
+    auto vy = vtx.getY();
+    auto vz = vtx.getZ();
+
     vertices.emplace_back(std::array<Double_t, 3>{ vx, vy, vz });
     LOG(INFO) << "TrivialVertexer::process() : "
               << "MC event #" << mcEv << " with vertex (" << vx << ',' << vy << ',' << vz << ')' << FairLogger::endl;
