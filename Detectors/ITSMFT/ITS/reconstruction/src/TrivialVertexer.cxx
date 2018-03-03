@@ -42,8 +42,6 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
   using layer = std::vector<Int_t>;
   std::map<Int_t, std::pair<layer, layer>> events;
   
-  auto gman = o2::ITS::GeometryTGeo::Instance();
-
   // Separate clusters coming from different MC events
   for (Int_t i = 0; i < clusters.size(); ++i) {
     auto mclab = (mClsLabels->getLabels(i))[0];
@@ -57,6 +55,8 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
     if (TMath::Abs(r - 3.0) < 0.5) event.second.push_back(i);
   }
 
+  auto gman = o2::ITS::GeometryTGeo::Instance();
+
   for (const auto &event : events) {
     auto mcEv = event.first;
     LinearVertex vtx;
@@ -65,6 +65,7 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
         const auto &c0 = clusters[i0];
         auto mclab0 = (mClsLabels->getLabels(i0))[0];
         auto lab0 = mclab0.getTrackID();
+	if (lab0 == -1) continue; // noise
         const auto &layer1 = event.second.second;
         for (auto i1 : layer1) {
            const auto &c1 = clusters[i1];
@@ -77,7 +78,11 @@ void TrivialVertexer::process(const std::vector<Cluster>& clusters, std::vector<
            std::array<Double_t, 3> v{ p1.X() - p0.X(), p1.Y() - p0.Y(), p1.Z() - p0.Z() };
            auto sy2 = (c1.getSigmaY2() + c0.getSigmaY2());
            auto sz2 = (c1.getSigmaZ2() + c0.getSigmaZ2());
-	   vtx.update(p, v, sy2, sz2);
+	   std::cout<<"l0l1 "<<lab0<<' '<<lab1<<' '
+	   	    <<p0.X()<<' '<<p0.Y()<<' '<<p0.Z()<<' '
+	   	    <<p1.X()<<' '<<p1.Y()<<' '<<p1.Z()<<' '
+		    <<vtx.getChi2()<<' '<<vtx.getNumberOfProngs()<<std::endl;
+	   if (vtx.update(p, v, sy2, sz2)) break;
 	}
     }
     auto vx = vtx.getX();

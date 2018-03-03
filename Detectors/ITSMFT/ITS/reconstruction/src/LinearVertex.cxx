@@ -15,25 +15,11 @@
 #include <TMath.h>
 #include <TMatrixD.h>
 
-#include "DataFormatsITSMFT/Cluster.h"
 #include "ITSReconstruction/LinearVertex.h"
 
 ClassImp(o2::ITS::LinearVertex)
 
-  using namespace o2::ITSMFT;
 using namespace o2::ITS;
-
-Bool_t LinearVertex::update(const Cluster& c1, const Cluster& c2)
-{
-  //--------------------------------------------------------------------
-  // Linear update of the vertex parameters
-  //--------------------------------------------------------------------
-  std::array<Double_t, 3> p{ c1.getX(), c1.getY(), c1.getZ() };
-  std::array<Double_t, 3> v{ c2.getX() - c1.getX(), c2.getY() - c1.getY(), c2.getZ() - c1.getZ() };
-  auto sy2 = (c1.getSigmaY2() + c2.getSigmaY2());
-  auto sz2 = (c1.getSigmaZ2() + c2.getSigmaZ2());
-  return update(p, v, sy2, sz2);
-}
 
 Bool_t LinearVertex::update(const std::array<Double_t, 3>& p, const std::array<Double_t, 3>& v, Double_t sy2,
                             Double_t sz2)
@@ -94,6 +80,12 @@ Bool_t LinearVertex::update(const std::array<Double_t, 3>& p, const std::array<D
   // Check the possible chi2 increment
   TMatrixD cv(wv);
   cv += wt;
+  cv.Invert();
+  if (!cv.IsValid())
+    return kFALSE;
+
+  wv = wv*cv*wt;
+
   auto lmn = TMath::Sqrt(l * l + m * m + n * n);
   auto cosx = l / lmn, cosy = m / lmn, cosz = n / lmn;
   auto pp = (l * (p[0] - mX) + m * (p[1] - mY) + n * (p[2] - mZ)) / lmn;
@@ -105,16 +97,13 @@ Bool_t LinearVertex::update(const std::array<Double_t, 3>& p, const std::array<D
   for (Int_t i = 0; i < 3; i++) {
     Double_t s = 0.;
     for (Int_t j = 0; j < 3; j++)
-      s += cv(i, j) * delta[j];
+      s += wv(i, j) * delta[j];
     chi2 += s * delta[i];
   }
   if (chi2 > mMaxChi2)
-    return kFALSE;
+     return kFALSE;
 
   // Update the vertex covariance
-  cv.Invert();
-  if (!cv.IsValid())
-    return kFALSE;
   mCov[0] = cv(0, 0);
   mCov[1] = cv(1, 0);
   mCov[2] = cv(1, 1);

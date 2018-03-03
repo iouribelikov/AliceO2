@@ -19,16 +19,10 @@
 
 namespace o2
 {
-namespace ITSMFT
-{
-class Cluster;
-}
 namespace ITS
 {
 class LinearVertex
 {
-  using Cluster = o2::ITSMFT::Cluster;
-
  public:
   LinearVertex() = default;
   LinearVertex(const LinearVertex& t) = default;
@@ -46,8 +40,8 @@ class LinearVertex
   auto getCovYZ() const { return mCov[4]; }
   auto getCovZ2() const { return mCov[5]; }
   auto getNumberOfProngs() const { return mProngs; }
-
-  Bool_t update(const Cluster& c1, const Cluster& c2);
+  auto getChi2() const { return mChi2; }
+  
   Bool_t update(const std::array<Double_t, 3>& p, const std::array<Double_t, 3>& v, Double_t sy2, Double_t sz2);
 
  private:
