@@ -245,7 +245,9 @@ ClassImp(V3Layer)
     mGammaConvDiam(0),
     mGammaConvXPos(0),
     mIBModuleZLength(0),
-    mOBModuleZLength(0)
+    mOBModuleZLength(0),
+    fsagsMax_X(0), // Cristina
+    fsagsMax_Y(0)  // Cristina
 {
   for (int i = kNHLevels; i--;) {
     mHierarchy[i] = 0;
@@ -272,7 +274,10 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
     mGammaConvDiam(0),
     mGammaConvXPos(0),
     mIBModuleZLength(0),
-    mOBModuleZLength(0)
+    mOBModuleZLength(0),
+    fsagsMax_X(0.0045), // 0.0225),//0.0060),//0.0045),  //Cristina
+    fsagsMax_Y(0.008)   // 0.0400)//0.0120)//0.0080)   //Cristina
+
 {
   for (int i = kNHLevels; i--;) {
     mHierarchy[i] = 0;
@@ -2028,10 +2033,37 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
     halfStaveVol->AddNode(glueVol, 1, new TGeoTranslation(0, ypos, 0));
   ypos -= glue->GetDY();
 
+  Double_t dtht, yposS, xposS; // Cristina x sags
   ypos -= ymod;
+  Double_t sagPar[2];
+  sagPar[0] = 0;//fsagsMax_X * cosD(phi);
+  sagPar[1] = fsagsMax_Y;// * sinD(-phi);
+
   for (Int_t j = 0; j < mNumberOfModules; j++) {
+    //LOG(INFO) << Form("phi %f sagpar %f %f", phi, sagPar[0], sagPar[1]) << FairLogger::endl;
     zpos = -zlen + j * (2 * zmod + sOBModuleGap) + zmod;
-    halfStaveVol->AddNode(moduleVol, j, new TGeoTranslation(0, ypos, zpos));
+    LOG(INFO) << Form("module %d zmod  %f zlen %f", j, zmod, zlen) << FairLogger::endl;
+    // xposS=0;
+    xposS = xpos + (4 * sagPar[0] / (zlen * 2 * zlen * 2)) * (zpos) * (zpos)-sagPar[0];
+    LOG(INFO) << Form("xPosS %f", xposS) << FairLogger::endl;
+
+    // yposS=ypos-(sagPar[2]*(zpos)*(zpos)+sagPar[1]*zpos+sagPar[0]);
+    yposS = ypos + (4 * sagPar[1] / (zlen * 2 * zlen * 2)) * (zpos) * (zpos)-sagPar[1];
+    //    yposS=0;
+    // xpos+=sagPar[2]*zpos*zpos+sagPar[1]*zpos+sagPar[0];
+    //      dy=(4*s/(L*L))*tr[2]*tr[2]-s
+    dtht = -180 * TMath::ATan(8 * sagPar[1] / (zlen * 2 * zlen * 2) * zpos) / 3.14;
+
+    LOG(INFO) << Form("module %d xpos  %f zpos %f", j, xpos, zpos) << FairLogger::endl;
+
+    LOG(INFO) << Form("Y before sag %f after sag  %f", ypos, yposS) << FairLogger::endl;
+    LOG(INFO) << Form("X before sag %f after sag  %f", xpos, xposS) << FairLogger::endl;
+    //  halfStaveVol->AddNode(moduleVol, j, new TGeoTranslation(0, ypos, zpos));
+
+    halfStaveVol->AddNode(moduleVol, j, new TGeoCombiTrans(xposS, yposS, zpos, new TGeoRotation("", 0, dtht, 0)));
+
+    // ypos-=sagPar[2]*(zpos)*(zpos)+sagPar[1]*zpos+sagPar[0];
+
     mHierarchy[kModule]++;
   }
 

@@ -95,6 +95,11 @@ class V3Layer : public V11Geometry
   Detector::Model getStaveModel() const { return mStaveModel; }
 
   void setChipThick(Double_t t) { mChipThickness = t; };
+  void setSagMax(Double_t sX, Double_t sY)
+  {
+    fsagsMax_X = sX;
+    fsagsMax_Y = sY;
+  };
 
   /// Gets the Gamma Conversion Rod diameter
   Double_t getGammaConversionRodDiam();
@@ -485,6 +490,11 @@ class V3Layer : public V11Geometry
   static const Double_t sOBSFrameULegHeight2; ///< OB SF U-Leg height
   static const Double_t sOBSFrameULegThick;   ///< OB SF U-Leg thickness
   static const Double_t sOBSFrameULegXPos;    ///< OB SF U-Leg X position
+
+  // Sags parameter ---------------------------------------------------
+
+  Double_t fsagsMax_X;
+  Double_t fsagsMax_Y;
 
   ClassDefOverride(V3Layer, 0) // ITS v3 geometry
 };
