@@ -80,10 +80,10 @@ void run_sim_its_ALP3(Int_t nEvents = 10, TString mcEngine = "TGeant3")
   FairPrimaryGenerator* primGen = new FairPrimaryGenerator();
   primGen->SetTarget(0., 3.);
   primGen->SmearGausVertexZ(kTRUE);
-  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 100); // pions
+  FairBoxGenerator* boxGen = new FairBoxGenerator(211, 200); // pions
 
   // boxGen->SetThetaRange(0.0, 90.0);
-  boxGen->SetEtaRange(-0.9, 0.9);
+  boxGen->SetEtaRange(-1.9, 1.9);
   boxGen->SetPtRange(1, 1.01);
   boxGen->SetPhiRange(0., 360.);
   boxGen->SetDebug(kFALSE);
