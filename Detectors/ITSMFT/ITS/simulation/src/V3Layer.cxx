@@ -3200,7 +3200,7 @@ TGeoVolume* V3Layer::createModuleOuterB(const TGeoManager* mgr)
   {
     zpos = -module->GetDZ() + zchip + k * (2 * zchip + zGap);
     modVol->AddNode(chipVol, 2 * k, new TGeoTranslation(xpos, ypos, zpos));
-    modVol->AddNode(chipVol, 2 * k + 1, new TGeoCombiTrans(-xpos, ypos, zpos, new TGeoRotation("", 0, 180, 180)));
+    modVol->AddNode(chipVol, 2 * k + 1, new TGeoCombiTrans(-xpos, ypos, zpos, new TGeoRotation("", 0, 180, 0)));
     mHierarchy[kChip] += 2;
   }
 
