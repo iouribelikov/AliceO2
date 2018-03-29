@@ -28,14 +28,15 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   TFile* f = TFile::Open("CheckTracks.root", "recreate");
   TNtuple* nt = new TNtuple("ntt", "track ntuple",
-                            //"mcYOut:recYOut:"
+                            "mcROut:recROut:"
                             "mcZOut:recZOut:"
                             "mcPhiOut:recPhiOut:"
                             "mcThetaOut:recThetaOut:"
                             "mcPhi:recPhi:"
                             "mcLam:recLam:"
                             "mcPt:recPt:"
-                            "ipD:ipZ:label");
+                            //"ipD:ipZ:"
+			    "label");
 
   char filename[100];
 
@@ -137,7 +138,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
       nGen++; // Generated tracks for the efficiency calculation
 
-      // Float_t mcYOut=-1., recYOut=-1.;
+      Float_t mcROut=-1., recROut=-1.;
       Float_t mcZOut = -1., recZOut = -1.;
       Float_t mcPhiOut = -1., recPhiOut = -1.;
       Float_t mcThetaOut = -1., recThetaOut = -1.;
@@ -165,7 +166,7 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
             continue;
           if (ref.getTrackID() != nmc)
             continue;
-          // mcYOut=ref.LocalY();
+          mcROut = TMath::Sqrt(ref.LocalX()*ref.LocalX() + ref.LocalY()*ref.LocalY());
           mcZOut = ref.Z();
           mcPhiOut = ref.Phi();
           mcThetaOut = ref.Theta();
@@ -173,7 +174,8 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
         }
 
         auto out = recTrack.getParamOut();
-        // recYOut = out.getY();
+        out.propagateTo(out.getX()+0.00194,0.5);
+        recROut = TMath::Sqrt(out.getX()*out.getX() + out.getY()*out.getY());
         recZOut = out.getZ();
         recPhiOut = out.getPhi();
         recThetaOut = out.getTheta();
@@ -192,9 +194,10 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
           nGoo++; // Good found tracks for the efficiency calculation
       }
 
-      nt->Fill( // mcYOut,recYOut,
-        mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt, ip[0],
-        ip[1], label);
+      nt->Fill( mcROut,recROut,
+        mcZOut, recZOut, mcPhiOut, recPhiOut, mcThetaOut, recThetaOut, mcPhi, recPhi, mcLam, recLam, mcPt, recPt,
+		//ip[0], ip[1],
+		label);
     }
     Float_t eff = (nGen > 0) ? nGoo / Float_t(nGen) : -1.;
     std::cout << "Good found tracks: " << nGoo << ",  efficiency: " << eff << std::endl;
@@ -202,18 +205,20 @@ void CheckTracks(Int_t nEvents = 10, TString mcEngine = "TGeant3")
 
   // "recPt>0" means "found tracks only"
   // "label>0" means "found good tracks only"
-  new TCanvas;
-  nt->Draw("ipD", "recPt>0 && label>0");
+  // new TCanvas;
+  // nt->Draw("ipD", "recPt>0 && label>0");
   new TCanvas;
   nt->Draw("mcLam-recLam", "recPt>0 && label>0");
   new TCanvas;
   nt->Draw("mcPt-recPt", "recPt>0 && label>0");
+  //new TCanvas;
+  //nt->Draw("mcZOut-recZOut:mcZOut", "recPt>0 && label>0 && abs(mcZOut-recZOut)<0.015");
   new TCanvas;
-  nt->Draw("mcZOut-recZOut", "recPt>0 && label>0 && abs(mcZOut-recZOut)<0.025");
+  nt->Draw("mcPhiOut-recPhiOut:mcZOut", "recPt>0 && label>0 && abs(mcPhiOut-recPhiOut)<0.1");
   new TCanvas;
-  nt->Draw("mcPhiOut-recPhiOut", "recPt>0 && label>0");
-  new TCanvas;
-  nt->Draw("mcThetaOut-recThetaOut", "recPt>0 && label>0");
+  nt->Draw("mcThetaOut-recThetaOut:mcZOut", "recPt>0 && label>0 && abs(mcThetaOut-recThetaOut)<0.05");
+  //new TCanvas;
+  //nt->Draw("mcROut-recROut : mcZOut", "recPt>0 && label>0 && abs(mcThetaOut-recThetaOut)<0.05 && abs(mcROut-recROut)<0.02");
   f->Write();
   f->Close();
 }
