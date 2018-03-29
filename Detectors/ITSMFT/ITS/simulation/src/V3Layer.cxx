@@ -275,8 +275,8 @@ V3Layer::V3Layer(Int_t lay, Bool_t turbo, Int_t debug)
     mGammaConvXPos(0),
     mIBModuleZLength(0),
     mOBModuleZLength(0),
-    fsagsMax_X(0.0045), // 0.0225),//0.0060),//0.0045),  //Cristina
-    fsagsMax_Y(0.008)   // 0.0400)//0.0120)//0.0080)   //Cristina
+    fsagsMax_X(0.00), // 0.0225),//0.0060),//0.0045),  //Cristina
+    fsagsMax_Y(0.00)   // 0.0400)//0.0120)//0.0080)   //Cristina
 
 {
   for (int i = kNHLevels; i--;) {
@@ -2036,7 +2036,7 @@ TGeoVolume* V3Layer::createStaveModelOuterB2(const TGeoManager* mgr)
   Double_t dtht, yposS, xposS; // Cristina x sags
   ypos -= ymod;
   Double_t sagPar[2];
-  sagPar[0] = 0;//fsagsMax_X * cosD(phi);
+  sagPar[0] = fsagsMax_X;// * cosD(phi);
   sagPar[1] = fsagsMax_Y;// * sinD(-phi);
 
   for (Int_t j = 0; j < mNumberOfModules; j++) {

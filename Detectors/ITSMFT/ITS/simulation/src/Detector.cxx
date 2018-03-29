@@ -782,6 +782,12 @@ void Detector::constructDetectorGeometry()
       mGeometry[j] = new V3Layer(j, kFALSE);
     }
 
+    //if (j==6)  mGeometry[j]->setSagMax(0.015,0);
+    if (j==6)  mGeometry[j]->setSagMax(0.0225,0.04);
+    //if (j==5)  mGeometry[j]->setSagMax(0,0.015);
+    //if (j==4)  mGeometry[j]->setSagMax(0,0.015*0.18);
+    //if (j==3)  mGeometry[j]->setSagMax(0,0.015*0.18);
+
     mGeometry[j]->setPhi0(mLayerPhi0[j]);
     mGeometry[j]->setRadius(mLayerRadii[j]);
     mGeometry[j]->setNumberOfStaves(mStavePerLayer[j]);
