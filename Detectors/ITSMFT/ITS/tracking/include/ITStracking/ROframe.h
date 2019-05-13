@@ -65,6 +65,7 @@ class ROframe final
   void addTrackingFrameInfoToLayer(int layer, T&&... args);
   void addClusterLabelToLayer(int layer, const MCCompLabel label);
   void addClusterExternalIndexToLayer(int layer, const int idx);
+  bool hasMCinformation() const;
 
   void clear();
 
@@ -162,7 +163,17 @@ inline void ROframe::clear()
   mPrimaryVertices.clear();
 }
 
-} // namespace its
+inline bool ROframe::hasMCinformation() const
+{
+  for (const auto& vect : mClusterLabels) {
+    if (!vect.empty()) {
+      return true;
+    }
+  }
+  return false;
+}
+
+} // namespace ITS
 } // namespace o2
 
 #endif /* TRACKINGITSU_INCLUDE_ROframe_H_ */
