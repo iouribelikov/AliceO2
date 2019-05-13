@@ -22,22 +22,14 @@
 #include "SimulationDataFormat/MCCompLabel.h"
 #include "SimulationDataFormat/MCTruthContainer.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
-#include "Framework/Task.h"
 
 #include "ITStracking/ROframe.h"
 #include "ITStracking/IOUtils.h"
-#include "ITStracking/Tracker.h"
-#include "ITStracking/TrackerTraitsCPU.h"
-#include "ITStracking/Vertexer.h"
-#include "ITStracking/VertexerTraits.h"
 
 #include "Field/MagneticField.h"
-#include "DataFormatsParameters/GRPObject.h"
 #include "DetectorsBase/GeometryManager.h"
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
-
-using namespace o2::framework;
 
 namespace o2
 {
@@ -64,11 +56,11 @@ class TrackerDPL : public Task
 void TrackerDPL::init(InitContext& ic)
 {
   auto filename = ic.options().get<std::string>("grp-file");
-  const auto grp = o2::parameters::GRPObject::loadFrom(filename.c_str());
+  const auto grp = parameters::GRPObject::loadFrom(filename.c_str());
   if (grp) {
     mGRP.reset(grp);
-    o2::base::Propagator::initFieldFromGRP(grp);
-    auto field = static_cast<o2::field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
+    base::Propagator::initFieldFromGRP(grp);
+    auto field = static_cast<field::MagneticField*>(TGeoGlobalMagField::Instance()->GetField());
 
     o2::base::GeometryManager::loadGeometry();
     o2::its::GeometryTGeo* geom = o2::its::GeometryTGeo::Instance();
@@ -91,11 +83,11 @@ void TrackerDPL::run(ProcessingContext& pc)
   if (mState != 1)
     return;
 
-  auto compClusters = pc.inputs().get<const std::vector<o2::itsmft::CompClusterExt>>("compClusters");
-  auto clusters = pc.inputs().get<const std::vector<o2::itsmft::Cluster>>("clusters");
-  auto labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
-  auto rofs = pc.inputs().get<const std::vector<o2::itsmft::ROFRecord>>("ROframes");
-  auto mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+  auto compClusters = pc.inputs().get<const std::vector<itsmft::CompClusterExt>>("compClusters");
+  auto clusters = pc.inputs().get<const std::vector<itsmft::Cluster>>("clusters");
+  auto labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels");
+  auto rofs = pc.inputs().get<const std::vector<itsmft::ROFRecord>>("ROframes");
+  auto mc2rofs = pc.inputs().get<const std::vector<itsmft::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
             << labels->getIndexedSize() << " MC label objects , in "
@@ -113,6 +105,7 @@ void TrackerDPL::run(ProcessingContext& pc)
   bool continuous = mGRP->isDetContinuousReadOut("ITS");
   LOG(INFO) << "ITSTracker RO: continuous=" << continuous;
 
+  auto labelsPtr = mIsMC ? labels.get() : nullptr; /// Most probably the framework already does this..
   if (continuous) {
     for (const auto& rof : rofs) {
       int nclUsed = o2::its::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
@@ -152,24 +145,32 @@ void TrackerDPL::run(ProcessingContext& pc)
   pc.services().get<ControlService>().readyToQuit(false);
 }
 
-DataProcessorSpec getTrackerSpec()
+DataProcessorSpec getTrackerSpec(bool useMC)
 {
+  std::vector<InputSpec> inputs;
+  inputs.emplace_back("compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe);
+  inputs.emplace_back("ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe);
+
+  std::vector<OutputSpec> outputs;
+  outputs.emplace_back("ITS", "TRACKS", 0, Lifetime::Timeframe);
+  outputs.emplace_back("ITS", "ITSTrackROF", 0, Lifetime::Timeframe);
+
+  if (useMC) {
+    inputs.emplace_back("labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe);
+    inputs.emplace_back("MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "TRACKSMCTR", 0, Lifetime::Timeframe);
+    outputs.emplace_back("ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe);
+  }
+
   return DataProcessorSpec{
     "its-tracker",
-    Inputs{
-      InputSpec{ "compClusters", "ITS", "COMPCLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "clusters", "ITS", "CLUSTERS", 0, Lifetime::Timeframe },
-      InputSpec{ "labels", "ITS", "CLUSTERSMCTR", 0, Lifetime::Timeframe },
-      InputSpec{ "ROframes", "ITS", "ITSClusterROF", 0, Lifetime::Timeframe },
-      InputSpec{ "MC2ROframes", "ITS", "ITSClusterMC2ROF", 0, Lifetime::Timeframe } },
-    Outputs{
-      OutputSpec{ "ITS", "TRACKS", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe },
-      OutputSpec{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe } },
-    AlgorithmSpec{ adaptFromTask<TrackerDPL>() },
+    inputs,
+    outputs,
+    AlgorithmSpec{ adaptFromTask<TrackerDPL>(useMC) },
     Options{
-      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the output file" } },
+      { "grp-file", VariantType::String, "o2sim_grp.root", { "Name of the grp file" } },
+      { "nthreads", VariantType::Int, 1, { "Number of threads" } },
     }
   };
 }
