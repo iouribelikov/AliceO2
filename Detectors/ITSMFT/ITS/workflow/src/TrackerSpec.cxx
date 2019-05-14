@@ -31,11 +31,13 @@
 #include "DetectorsBase/Propagator.h"
 #include "ITSBase/GeometryTGeo.h"
 
+using namespace o2::framework;
+
 namespace o2
 {
 namespace its
 {
-
+  /*
 class TrackerDPL : public Task
 {
  public:
@@ -52,7 +54,7 @@ class TrackerDPL : public Task
   std::unique_ptr<o2::its::Tracker> mTracker = nullptr;
   std::unique_ptr<o2::its::Vertexer> mVertexer = nullptr;
 };
-
+  */
 void TrackerDPL::init(InitContext& ic)
 {
   auto filename = ic.options().get<std::string>("grp-file");
@@ -78,21 +80,32 @@ void TrackerDPL::init(InitContext& ic)
   mState = 1;
 }
 
-void TrackerDPL::run(ProcessingContext& pc)
+  void TrackerDPL::run(ProcessingContext& pc)
 {
   if (mState != 1)
     return;
 
   auto compClusters = pc.inputs().get<const std::vector<itsmft::CompClusterExt>>("compClusters");
   auto clusters = pc.inputs().get<const std::vector<itsmft::Cluster>>("clusters");
-  auto labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels");
   auto rofs = pc.inputs().get<const std::vector<itsmft::ROFRecord>>("ROframes");
+  /*
+  auto labels = pc.inputs().get<const dataformats::MCTruthContainer<MCCompLabel>*>("labels");
   auto mc2rofs = pc.inputs().get<const std::vector<itsmft::MC2ROFRecord>>("MC2ROframes");
 
   LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, "
             << labels->getIndexedSize() << " MC label objects , in "
             << rofs.size() << " RO frames and "
             << mc2rofs.size() << " MC events";
+  */
+  std::unique_ptr<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>> labels;
+  std::vector<o2::itsmft::MC2ROFRecord> mc2rofs;
+  if (mIsMC) {
+    labels = pc.inputs().get<const o2::dataformats::MCTruthContainer<o2::MCCompLabel>*>("labels");
+    mc2rofs = pc.inputs().get<const std::vector<o2::itsmft::MC2ROFRecord>>("MC2ROframes");
+  }
+  
+  LOG(INFO) << "ITSTracker pulled " << clusters.size() << " clusters, in "
+            << rofs.size() << " RO frames";
 
   std::vector<o2::its::TrackITS> tracks;
   o2::dataformats::MCTruthContainer<o2::MCCompLabel> trackLabels;
@@ -111,7 +124,7 @@ void TrackerDPL::run(ProcessingContext& pc)
       int nclUsed = o2::its::IOUtils::loadROFrameData(rof, event, &clusters, labels.get());
       if (nclUsed) {
         LOG(INFO) << "ROframe: " << roFrame << ", clusters loaded : " << nclUsed;
-        mVertexer->clustersToVertices(event);
+        mVertexer->clustersToVertices(event,mIsMC);
         event.addPrimaryVertices(mVertexer->exportVertices());
         mTracker->setROFrame(roFrame);
         mTracker->clustersToTracks(event);
@@ -137,10 +150,13 @@ void TrackerDPL::run(ProcessingContext& pc)
 
   LOG(INFO) << "ITSTracker pushed " << allTracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, allTracks);
-  pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);
-  pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
 
+  if (mIsMC) {
+    pc.outputs().snapshot(Output{ "ITS", "TRACKSMCTR", 0, Lifetime::Timeframe }, allTrackLabels);
+    pc.outputs().snapshot(Output{ "ITS", "ITSTrackMC2ROF", 0, Lifetime::Timeframe }, mc2rofs);
+  }
+  
   mState = 2;
   pc.services().get<ControlService>().readyToQuit(false);
 }

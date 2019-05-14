@@ -111,11 +111,12 @@ void run_trac_ca_its(bool useITSVertex = false,
   std::vector<o2::itsmft::Cluster>* clusters = nullptr;
   itsClusters.SetBranchAddress("ITSCluster", &clusters);
 
-  if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
-    LOG(FATAL) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
-  }
   o2::dataformats::MCTruthContainer<o2::MCCompLabel>* labels = nullptr;
-  itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
+  if (!itsClusters.GetBranch("ITSClusterMCTruth")) {
+    LOG(WARNING) << "Did not find ITS clusters branch ITSClusterMCTruth in the input tree" << FairLogger::endl;
+  } else {
+    itsClusters.SetBranchAddress("ITSClusterMCTruth", &labels);
+  }
 
   // create/attach output tree
   TFile outFile((path + outputfile).data(), "recreate");

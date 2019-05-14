@@ -39,11 +39,11 @@ class TrackerDPL : public framework::Task
  private:
   int mState = 0;
   bool mIsMC = false;
-  ITS::TrackerTraitsCPU mTrackerTraits; //FIXME: the traits should be taken from the GPUChain
-  ITS::VertexerTraits mVertexerTraits;
+  its::TrackerTraitsCPU mTrackerTraits; //FIXME: the traits should be taken from the GPUChain
+  its::VertexerTraits mVertexerTraits;
   std::unique_ptr<parameters::GRPObject> mGRP = nullptr;
-  std::unique_ptr<ITS::Tracker> mTracker = nullptr;
-  std::unique_ptr<ITS::Vertexer> mVertexer = nullptr;
+  std::unique_ptr<its::Tracker> mTracker = nullptr;
+  std::unique_ptr<its::Vertexer> mVertexer = nullptr;
 };
 
 /// create a processor spec
