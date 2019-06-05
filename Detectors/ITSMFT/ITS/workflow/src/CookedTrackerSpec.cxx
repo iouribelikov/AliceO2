@@ -94,8 +94,10 @@ void CookedTrackerDPL::run(ProcessingContext& pc)
   mTracker.setVertices(vertices);
 
   std::vector<o2::its::TrackITS> tracks;
-  mTracker.process(clusters, tracks, rofs);
-
+  for (auto& rof : rofs) {
+    mTracker.process(clusters, tracks, rof);    
+  }
+  
   LOG(INFO) << "ITSCookedTracker pushed " << tracks.size() << " tracks";
   pc.outputs().snapshot(Output{ "ITS", "TRACKS", 0, Lifetime::Timeframe }, tracks);
   pc.outputs().snapshot(Output{ "ITS", "ITSTrackROF", 0, Lifetime::Timeframe }, rofs);

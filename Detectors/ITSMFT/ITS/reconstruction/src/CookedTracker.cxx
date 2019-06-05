@@ -479,22 +479,19 @@ std::vector<TrackITS> CookedTracker::trackInThread(Int_t first, Int_t last)
 }
 
 void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
-                            std::vector<o2::itsmft::ROFRecord>& rofs)
+                            o2::itsmft::ROFRecord& rof)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function
   //--------------------------------------------------------------------
-  static int entry = 0;
-
   LOG(INFO) << FairLogger::endl;
-  LOG(INFO) << "CookedTracker::process() entry " << entry++ << ", number of threads: " << mNumOfThreads
+  LOG(INFO) << "CookedTracker::process(), number of threads: " << mNumOfThreads
             << FairLogger::endl;
 
   auto start = std::chrono::system_clock::now();
 
   mFirstCluster = &clusters.front();
 
-  for (auto& rof : rofs) {
     auto nClFrame = loadClusters(clusters, rof);
 
     auto end = std::chrono::system_clock::now();
@@ -505,7 +502,7 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     start = end;
 
     int first = tracks.size();
-    processFrame(tracks);
+    processLoadedClusters(tracks);
     int number = tracks.size() - first;
     rof.getROFEntry().setIndex(first);
     rof.setNROFEntries(number);
@@ -516,10 +513,9 @@ void CookedTracker::process(const std::vector<Cluster>& clusters, std::vector<Tr
     LOG(INFO) << "Processing time/clusters for single frame : " << diff.count() << " / " << nClFrame << " s" << FairLogger::endl;
 
     start = end;
-  }
 }
 
-void CookedTracker::processFrame(std::vector<TrackITS>& tracks)
+void CookedTracker::processLoadedClusters(std::vector<TrackITS>& tracks)
 {
   //--------------------------------------------------------------------
   // This is the main tracking function for single frame, it is assumed that only clusters

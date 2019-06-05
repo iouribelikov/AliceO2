@@ -70,8 +70,7 @@ class CookedTracker
 
   // These functions must be implemented
   void process(const std::vector<Cluster>& clusters, std::vector<TrackITS>& tracks,
-               std::vector<o2::itsmft::ROFRecord>& rofs);
-  void processFrame(std::vector<TrackITS>& tracks);
+               o2::itsmft::ROFRecord& rof);
   // Int_t propagateBack(std::vector<TrackITS> *event);
   // Int_t RefitInward(std::vector<TrackITS> *event);
   // Bool_t refitAt(Double_t x, TrackITS *seed, const TrackITS *t);
@@ -96,6 +95,7 @@ class CookedTracker
   static constexpr int kNLayers = 7;
   int loadClusters(const std::vector<Cluster>& clusters, const o2::itsmft::ROFRecord& rof);
   void unloadClusters();
+  void processLoadedClusters(std::vector<TrackITS>& tracks);
 
   std::vector<TrackITS> trackInThread(Int_t first, Int_t last);
   void makeSeeds(std::vector<TrackITS>& seeds, Int_t first, Int_t last);
