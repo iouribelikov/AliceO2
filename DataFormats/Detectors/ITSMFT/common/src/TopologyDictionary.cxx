@@ -135,12 +135,18 @@ math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompC
   return locCl;
 }
 
-math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt)
+math_utils::Point3D<float> TopologyDictionary::getClusterCoordinates(const CompCluster& cl, const ClusterPattern& patt, bool isGroup)
 {
-  float xCOG = 0, zCOG = 0;
-  patt.getCOG(xCOG, zCOG);
+  auto refRow = cl.getRow();
+  auto refCol = cl.getCol();
+  if (isGroup) {
+    float xCOG = 0, zCOG = 0;
+    patt.getCOG(xCOG, zCOG);
+    refRow += (xCOG - round(xCOG));
+    refCol += (zCOG - round(zCOG));
+  }
   math_utils::Point3D<float> locCl;
-  o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(cl.getRow() - round(xCOG) + xCOG, cl.getCol() - round(zCOG) + zCOG, locCl);
+  o2::itsmft::SegmentationAlpide::detectorToLocalUnchecked(refRow, refCol, locCl);
   return locCl;
 }
 
