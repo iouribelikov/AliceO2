@@ -274,12 +274,19 @@ GBTLink::CollectedDataStatus GBTLink::collectROFCableData(const Mapping& chmap)
       GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTDataID(gbtD));
       if (errRes != GBTLink::Skip) {
         int cableHW = gbtD->getCableID(), cableSW = chmap.cableHW2SW(ruPtr->ruInfo->ruType, cableHW);
+///////////
+    if (cableHW != 0)
+      if (cableHW != 0x0A) //9)
+	if (cableHW != 0x15) //19)
+	  if (cableHW != 0x1b) { //24) {
+//////	
         GBTLINK_DECODE_ERRORCHECK(errRes, checkErrorsGBTData(chmap.cableHW2Pos(ruPtr->ruInfo->ruType, cableHW)));
         ruPtr->cableData[cableSW].add(gbtD->getW8(), 9);
         ruPtr->cableHWID[cableSW] = cableHW;
         ruPtr->cableLinkID[cableSW] = idInRU;
         ruPtr->cableLinkPtr[cableSW] = this;
       }
+      } //////
       dataOffset += GBTPaddedWordLength;
       gbtD = reinterpret_cast<const o2::itsmft::GBTData*>(&currRawPiece->data[dataOffset]);
     } // we are at the trailer, packet is over, check if there are more data on the next page

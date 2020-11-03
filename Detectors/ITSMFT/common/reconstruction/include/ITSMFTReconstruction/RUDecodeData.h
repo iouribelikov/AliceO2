@@ -60,6 +60,8 @@ struct RUDecodeData {
   ClassDefNV(RUDecodeData, 1);
 };
 
+  extern int chip_id;
+  
 ///_________________________________________________________________
 /// decode single readout frame, the cable's data must be filled in advance via GBTLink::collectROFCableData
 template <class Mapping>

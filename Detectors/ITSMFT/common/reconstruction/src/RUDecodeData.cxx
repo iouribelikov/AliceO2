@@ -26,7 +26,9 @@ namespace o2
 {
 namespace itsmft
 {
-
+  
+  int chip_id = -1;
+  
 ///_________________________________________________________________
 /// reset RU and its links
 void RUDecodeData::clear()

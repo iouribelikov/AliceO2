@@ -36,7 +36,9 @@ namespace o2
 {
 namespace itsmft
 {
-
+  
+  extern int chip_id;
+  
 /// Decoder / Encoder of ALPIDE payload stream.
 /// All decoding methods are static. Only a few encoding methods are non-static but can be made so
 /// if needed (will require to make the encoding buffers external to this class)
@@ -153,7 +155,10 @@ class AlpideCoder
       }
 
       if ((expectInp & ExpectChipHeader) && dataCM == CHIPHEADER) { // chip header was expected
-        chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
+
+        chip_id = (dataC & MaskChipID)%7;
+	
+	chipData.setChipID(cidGetter(dataC & MaskChipID));          // here we set the global chip ID
         if (!buffer.next(timestamp)) {
 #ifdef ALPIDE_DECODING_STAT
           chipData.setError(ChipStat::TruncatedChipHeader);
@@ -335,6 +340,10 @@ class AlpideCoder
   /// Output a non-noisy fired pixel
   static void addHit(ChipPixelData& chipData, short row, short col)
   {
+    const int dlt = 64;
+    int st = dlt*chip_id;
+    if ((row>st) && (row<st+128)) return;
+    
     if (mNoisyPixels) {
       auto chipID = chipData.getChipID();
       if (mNoisyPixels->getNoiseLevel(chipID, row, col) > mNoiseThreshold) {
