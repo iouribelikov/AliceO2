@@ -126,8 +126,8 @@ class NoiseMap
 
  private:
   std::vector<std::map<int, int>> mNoisyPixels; ///< Internal noise map representation
-  long int mNumOfStrobes = 0;                  ///< Accumulated number of ALPIDE strobes
-  float mProbThreshold = 0;                    ///< Probability threshold for noisy pixels
+  long int mNumOfStrobes = 0;                   ///< Accumulated number of ALPIDE strobes
+  float mProbThreshold = 0;                     ///< Probability threshold for noisy pixels
 
   ClassDefNV(NoiseMap, 2);
 };
