@@ -13,7 +13,6 @@
 #include "CCDB/CcdbApi.h"
 #include "DetectorsCalibration/Utils.h"
 #include "ITSCalibration/NoiseCalibratorSpec.h"
-#include "ITSCalibration/NoiseCalibrator.h"
 #include "DataFormatsITSMFT/CompCluster.h"
 #include "DataFormatsITSMFT/ROFRecord.h"
 
@@ -35,7 +34,7 @@ void NoiseCalibratorSpec::init(InitContext& ic)
   auto probT = ic.options().get<float>("prob-threshold");
   LOG(INFO) << "Setting the probability threshold to " << probT;
 
-  mCalibrator = std::make_unique<o2::its::NoiseCalibrator>(onepix, probT);
+  mCalibrator = std::make_unique<CALIBRATOR>(onepix, probT);
 }
 
 void NoiseCalibratorSpec::run(ProcessingContext& pc)
