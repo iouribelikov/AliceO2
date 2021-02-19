@@ -135,6 +135,26 @@ echo "errorcount,${TAG} value=${ERRORCOUNT} " >> metrics.dat
 echo "exceptioncount,${TAG} value=${EXCEPTIONCOUNT} " >> metrics.dat
 
 
+#ITS reconstruction tests
+det=ITS
+echo >> $METRICFILE
+ITS_RECO_LOG=reco_${det}.log
+ln -s ${SIMPREFIX}_geometry.root o2sim_geometry.root
+o2-its-reco-workflow --grp-file ${SIMPREFIX}_grp.root --trackerCA >& $ITS_RECO_LOG
+TRAC_TIME=`grep 'ITS CA-Tracker total timing' $ITS_RECO_LOG | awk '//{print $8}'`
+TRAC_TRACKS=`grep 'ITSTrackWriter pulled' $ITS_RECO_LOG | awk '//{print $5}'`
+echo Tracking time $TRAC_TIME for $TRAC_TRACKS found tracks >> $METRICFILE
+#
+ITS_CLUS_LOG=clus_${det}.log
+root.exe -b -q $O2_ROOT/share/Detectors/ITS/test/CheckClusters.C\(\"o2clus_its.root\",\"${SIMPREFIX}_HitsITS.root\"\) >& $ITS_CLUS_LOG
+grep 'Cluster mean shifts' $ITS_CLUS_LOG >> $METRICFILE
+grep 'Cluster mean resolutions' $ITS_CLUS_LOG >> $METRICFILE
+#
+ITS_TRAC_LOG=trac_${det}.log
+root.exe -b -q $O2_ROOT/share/Detectors/ITS/test/CheckTracks.C\(\"o2trac_its.root\",\"o2clus_its.root\",\"${SIMPREFIX}_Kine.root\"\) >& $ITS_TRAC_LOG
+grep 'Good found tracks/event:' $ITS_TRAC_LOG >> $METRICFILE
+
+
 done # end loop over configurations engines
 
 # remove empty DPL files

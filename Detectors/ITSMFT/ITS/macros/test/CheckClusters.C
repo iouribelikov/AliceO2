@@ -201,8 +201,15 @@ void CheckClusters(std::string clusfile = "o2clus_its.root", std::string hitfile
 
   new TCanvas;
   nt.Draw("cgy:cgx");
+
   new TCanvas;
-  nt.Draw("dz:dx", "abs(dz)<0.01 && abs(dx)<0.01");
+  gROOT->cd();
+  TH2F* dzdx = new TH2F("dzdx", "dz vs dx", 100, -0.003, 0.003, 100, -0.003, 0.003);
+  nt.Draw("dz:dx>>dzdx", "abs(dz)<0.01 && abs(dx)<0.01");
+  dzdx->Draw();
+  std::cout << "Cluster mean shifts x z: " << dzdx->GetMean(1) << " " << dzdx->GetMean(2) << '\n';
+  std::cout << "Cluster mean resolutions x z: " << dzdx->GetRMS(1) << " " << dzdx->GetRMS(2) << '\n';
+
   new TCanvas;
   nt.Draw("dz:tz", "abs(dz)<0.005 && abs(tz)<2");
   fout.cd();

@@ -10,3 +10,5 @@
 
 add_subdirectory(EVE)
 add_subdirectory(test)
+
+o2_data_file(COPY test DESTINATION Detectors/ITS)
